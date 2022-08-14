@@ -35,7 +35,7 @@ impl Grid {
     }
 
     pub fn within_bounds(&self, x: usize, y: usize) -> bool {
-        x < self.field.len() || y < self.field[0].len()
+        x < self.field.len() && y < self.field[0].len()
     }
 
     pub fn toggle_position(&mut self, x: usize, y: usize) {
@@ -48,7 +48,7 @@ impl Grid {
 
     pub fn neighbors_at(&self, x: usize, y: usize) -> Vec<Point> {
         let mut neighbors: Vec<Point> = Vec::new();
-        if self.within_bounds(x, y) {
+        if !self.within_bounds(x, y) {
             return neighbors
         }
         for delta in vec![1, -1] {

@@ -53,6 +53,7 @@ impl Mouse {
 
     pub fn draw(&self, canvas: &mut Canvas) {
         for (possible_move, _) in &self.possible_moves {
+            println!("{possible_move:?}");
             canvas.draw(
                 &graphics::Quad,
                 graphics::DrawParam::new()
