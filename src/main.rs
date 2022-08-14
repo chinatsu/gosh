@@ -1,7 +1,7 @@
 use ggez::{Context, ContextBuilder, GameResult};
 use ggez::graphics::{self, Color, Canvas};
 use ggez::event::{self, EventHandler};
-use ggez::conf::WindowMode;
+use ggez::conf::{WindowMode, WindowSetup};
 
 mod grid;
 mod mouse;
@@ -12,10 +12,12 @@ pub trait Component {
     fn draw(&mut self, canvas: &mut Canvas);
 }
 
+const DESIRED_FPS: u32 = 60;
+
 fn main() -> GameResult<()> {
     // Make a Context.
     let (mut ctx, event_loop) = ContextBuilder::new("gosh", "cn")
-        .window_setup(ggez::conf::WindowSetup::default().title("Gosh"))
+        .window_setup(WindowSetup::default().title("Gosh"))
         .window_mode(WindowMode::default().dimensions(640.0, 480.0))
         .build()
         .expect("could not create ggez context!");
@@ -60,9 +62,11 @@ impl Gosh {
 
 impl EventHandler for Gosh {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
-        for component in &mut self.components {
-            // no component does anything sensible at the moment
-            component.update(ctx)?;
+        while ctx.time.check_update_time(DESIRED_FPS) {
+            for component in &mut self.components {
+                // no component does anything sensible at the moment
+                component.update(ctx)?;
+            }
         }
         Ok(())
     }
@@ -79,6 +83,7 @@ impl EventHandler for Gosh {
             component.draw(&mut canvas);
         }
         canvas.finish(ctx)?;
+        ggez::timer::yield_now();
         Ok(())
     }
 
