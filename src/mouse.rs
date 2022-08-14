@@ -3,7 +3,7 @@ use crate::{Grid, Point};
 
 #[derive(Clone, Debug)]
 pub struct Mouse {
-    pub possible_moves: Vec<Point>,
+    pub possible_moves: Vec<(Point, u32)>,
     size: usize,
     x: usize,
     y: usize,
@@ -21,31 +21,25 @@ impl Mouse {
         }
     }
 
-    pub fn find_movement_area(&mut self, grid: &Grid, x: usize, y: usize, depth: u32) {
-        let point = Point{x: x, y: y};
-        #[cfg(feature = "possible-moves-contains")]
-        {
-            if !self.possible_moves.contains(&point) && depth <= self.max_moves {
-                self.possible_moves.push(point);
-                for neighbor in grid.neighbors_at(point.x, point.y) {
-                    self.find_movement_area(grid, neighbor.x, neighbor.y, depth+1);
-                }
-            }
-        }
-        #[cfg(not(feature = "possible-moves-contains"))]
-        {
-            if depth <= self.max_moves {
-                self.possible_moves.push(point);
-                for neighbor in grid.neighbors_at(point.x, point.y) {
-                    self.find_movement_area(grid, neighbor.x, neighbor.y, depth+1);
-                }
-            }
-        }
-        
-    }
     pub fn update(&mut self, grid: &Grid) {
+        if !grid.within_bounds(self.x, self.y) {
+            return
+        }
         self.possible_moves = Vec::new();
-        self.find_movement_area(grid, self.x, self.y, 0);
+        let mut possible_moves = vec![(Point{x: self.x, y: self.y}, 0)];
+
+        while possible_moves.len() != 0 {
+            if let Some((point, distance)) = possible_moves.pop() {
+                if grid.tile_at(point.x, point.y) {
+                    if distance <= self.max_moves {
+                        for neighbor in grid.neighbors_at(point.x, point.y) {
+                            possible_moves.push((neighbor, distance+1));
+                            self.possible_moves.push((neighbor, distance+1));
+                        }
+                    }
+                }
+            }
+        }
     }
 
     pub fn update_position(&mut self, x: f32, y: f32) {
@@ -58,7 +52,7 @@ impl Mouse {
     }
 
     pub fn draw(&self, canvas: &mut Canvas) {
-        for possible_move in &self.possible_moves {
+        for (possible_move, _) in &self.possible_moves {
             canvas.draw(
                 &graphics::Quad,
                 graphics::DrawParam::new()

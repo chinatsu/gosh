@@ -29,18 +29,26 @@ impl Grid {
 
         Ok(Grid {
             mesh: Mesh::from_data(ctx, mesh.build()),
-            field: vec![vec![false; h as usize/size as usize]; w as usize/size as usize],
+            field: vec![vec![true; h as usize/size as usize]; w as usize/size as usize],
             size: size,
         })
+    }
+
+    pub fn within_bounds(&self, x: usize, y: usize) -> bool {
+        x < self.field.len() || y < self.field[0].len()
     }
 
     pub fn toggle_position(&mut self, x: usize, y: usize) {
         self.field[x][y] = !self.field[x][y];
     }
 
+    pub fn tile_at(&self, x: usize, y: usize) -> bool {
+        self.field[x][y]
+    }
+
     pub fn neighbors_at(&self, x: usize, y: usize) -> Vec<Point> {
         let mut neighbors: Vec<Point> = Vec::new();
-        if x >= self.field.len() || y >= self.field[0].len() {
+        if self.within_bounds(x, y) {
             return neighbors
         }
         for delta in vec![1, -1] {
@@ -48,13 +56,13 @@ impl Grid {
             let new_y = y as isize + delta;
             if new_x >= 0 && new_x < self.field.len() as isize {
                 let node = self.field[new_x as usize][y];
-                if !node {
+                if node {
                     neighbors.push(Point{x: new_x as usize, y: y});
                 }
             }
             if new_y >= 0 && new_y < self.field[0].len() as isize {
                 let node = self.field[x][new_y as usize];
-                if !node {
+                if node {
                     neighbors.push(Point{x: x, y: new_y as usize});
                 }
             }
@@ -70,7 +78,7 @@ impl Component for Grid {
     fn draw(&mut self, canvas: &mut Canvas) {
         for (x, line) in self.field.iter().enumerate() {
             for (y, element) in line.iter().enumerate() {
-                if *element {
+                if !*element {
                     canvas.draw(
                         &graphics::Quad,
                         graphics::DrawParam::new()
