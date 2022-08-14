@@ -18,16 +18,13 @@ fn main() -> GameResult<()> {
         .window_setup(ggez::conf::WindowSetup::default().title("Gosh"))
         .window_mode(WindowMode::default().dimensions(640.0, 480.0))
         .build()
-        .expect("aieee, could not create ggez context!");
+        .expect("could not create ggez context!");
 
     let grid_size = 32;
-    let grid = grid::Grid::new(&mut ctx, grid_size)?;
-    let mouse = Mouse::new(grid_size);
-
 
     let my_game = Gosh::new(&mut ctx)
-        .with_component(grid)
-        .with_mouse(mouse);
+        .with_component(grid::Grid::new(&mut ctx, grid_size)?)
+        .with_mouse(Mouse::new(grid_size));
 
     // Run!
     event::run(ctx, event_loop, my_game);
@@ -47,7 +44,11 @@ impl Gosh {
     }
 
     pub fn with_mouse(mut self, mouse: Mouse) -> Gosh {
-        self.mouse = Some(mouse);
+        if self.mouse.is_none() {
+            self.mouse = Some(mouse);
+        } else {
+            panic!("You can't call .with_mouse() more than once!");
+        }
         self
     }
 
@@ -60,6 +61,7 @@ impl Gosh {
 impl EventHandler for Gosh {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         for component in &mut self.components {
+            // no component does anything sensible at the moment
             component.update(ctx)?;
         }
         Ok(())
@@ -88,8 +90,8 @@ impl EventHandler for Gosh {
         _xrel: f32,
         _yrel: f32,
     ) -> GameResult {
-        if self.mouse.is_some() {
-            self.mouse.as_mut().unwrap().update_position(x, y);
+        if let Some(mouse) = &mut self.mouse {
+            mouse.update_position(x, y);
         }
         Ok(())
     }
