@@ -1,9 +1,10 @@
-use ggez::graphics::{self, Canvas, Rect};
+use ggez::{GameResult, Context};
+use ggez::graphics::{self, Canvas, MeshBuilder, Rect, Mesh};
 use crate::{Grid, Point};
 
 #[derive(Clone, Debug)]
 pub struct Mouse {
-    pub possible_moves: Vec<(Point, u32)>,
+    pub possible_moves: Vec<Point>,
     size: usize,
     x: usize,
     y: usize,
@@ -34,7 +35,9 @@ impl Mouse {
                     if distance <= self.max_moves {
                         for neighbor in grid.neighbors_at(point.x, point.y) {
                             possible_moves.push((neighbor, distance+1));
-                            self.possible_moves.push((neighbor, distance+1));
+                            if !self.possible_moves.contains(&neighbor) {
+                                self.possible_moves.push(neighbor);
+                            }
                         }
                     }
                 }
@@ -51,21 +54,21 @@ impl Mouse {
         (self.x, self.y)
     }
 
-    pub fn draw(&self, canvas: &mut Canvas) {
-        for (possible_move, _) in &self.possible_moves {
-            println!("{possible_move:?}");
-            canvas.draw(
-                &graphics::Quad,
-                graphics::DrawParam::new()
-                    .dest_rect(Rect{x: (possible_move.x*self.size) as f32, y: (possible_move.y*self.size) as f32, w: self.size as f32, h: self.size as f32})
-                    .color([0.0, 1.0, 0.0, 1.0]),
-            );
+    pub fn draw(&self, ctx: &mut Context, canvas: &mut Canvas) -> GameResult<()> {
+        let mut mesh = MeshBuilder::new();
+        for possible_move in &self.possible_moves {
+            mesh.rectangle(
+                graphics::DrawMode::fill(),
+                Rect{x: (possible_move.x*self.size) as f32, y: (possible_move.y*self.size) as f32, w: self.size as f32, h: self.size as f32},
+                [0.2, 0.2, 0.2, 0.8].into(),
+            )?;
         }
-        canvas.draw(
-            &graphics::Quad,
-            graphics::DrawParam::new()
-                .dest_rect(Rect{x: (self.x*self.size) as f32, y: (self.y*self.size) as f32, w: self.size as f32, h: self.size as f32})
-                .color([1.0, 0.5, 0.0, 1.0]),
-        );
+        mesh.rectangle(
+            graphics::DrawMode::fill(),
+            Rect{x: (self.x*self.size) as f32, y: (self.y*self.size) as f32, w: self.size as f32, h: self.size as f32},
+            [1.0, 0.5, 0.0, 1.0].into(),
+        )?;
+        canvas.draw(&Mesh::from_data(ctx, mesh.build()), graphics::DrawParam::new().image_scale(false));
+        Ok(())
     }
 }

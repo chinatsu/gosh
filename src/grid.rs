@@ -83,7 +83,7 @@ impl Component for Grid {
                         &graphics::Quad,
                         graphics::DrawParam::new()
                             .dest_rect(Rect{x: (x as u32*self.size) as f32, y: (y as u32*self.size) as f32, w: self.size as f32, h: self.size as f32})
-                            .color([0.0, 0.0, 1.0, 1.0]),
+                            .color([0.0, 0.0, 0.0, 1.0]),
                     );
                 }
             }

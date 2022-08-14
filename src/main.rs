@@ -16,7 +16,8 @@ pub trait Component {
 
 const DESIRED_FPS: u32 = 60;
 const GRID_SIZE: u32 = 32;
-const MAX_MOVES: u32 = 5;
+const MAX_MOVES: u32 = 8;
+  
 
 fn main() -> GameResult<()> {
     // Make a Context.
@@ -35,7 +36,6 @@ fn main() -> GameResult<()> {
 }
 
 struct Gosh {
-    components: Vec<Box<dyn Component + 'static>>,
     mouse: Option<mouse::Mouse>,
     grid: Option<grid::Grid>,
 }
@@ -43,7 +43,6 @@ struct Gosh {
 impl Gosh {
     pub fn new(_ctx: &mut Context) -> Self {
         Gosh {
-            components: Vec::new(),
             grid: None,
             mouse: None,
         }
@@ -66,25 +65,17 @@ impl Gosh {
         }
         self
     }
-
-    pub fn with_component(mut self, component: impl Component + 'static) -> Self {
-        self.components.push(Box::new(component));
-        self
-    }
 }
 
 impl EventHandler for Gosh {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         while ctx.time.check_update_time(DESIRED_FPS) {
-            for component in &mut self.components {
-                // no component does anything sensible at the moment
-                component.update(ctx)?;
-            }
             if let Some(grid) = &mut self.grid {
                 if let Some(mouse) = &mut self.mouse {
                     mouse.update(grid);
                 }
             }
+            //print!("{}       \r", ctx.time.fps())
         }
         Ok(())
     }
@@ -95,14 +86,12 @@ impl EventHandler for Gosh {
             graphics::CanvasLoadOp::Clear(Color::WHITE),
         );
         if let Some(mouse) = &self.mouse {
-            mouse.draw(&mut canvas);
-        }
-        for component in &mut self.components {
-            component.draw(&mut canvas);
+            mouse.draw(ctx, &mut canvas)?;
         }
         if let Some(grid) = &mut self.grid {
             grid.draw(&mut canvas);
         }
+
         canvas.finish(ctx)?;
         ggez::timer::yield_now();
         Ok(())
