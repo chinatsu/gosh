@@ -7,3 +7,6 @@ edition = "2021"
 
 [dependencies]
 ggez = "0.8.0-rc0"
+
+[features]
+possible-moves-contains = []

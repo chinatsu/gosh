@@ -1,9 +1,11 @@
 use ggez::{Context, ContextBuilder, GameResult};
 use ggez::graphics::{self, Color, Canvas};
 use ggez::event::{self, EventHandler};
+use ggez::input::mouse::MouseButton;
 use ggez::conf::{WindowMode, WindowSetup};
 
 mod grid;
+use grid::{Grid, Point};
 mod mouse;
 use mouse::Mouse;
 
@@ -13,6 +15,8 @@ pub trait Component {
 }
 
 const DESIRED_FPS: u32 = 60;
+const GRID_SIZE: u32 = 32;
+const MAX_MOVES: u32 = 5;
 
 fn main() -> GameResult<()> {
     // Make a Context.
@@ -22,11 +26,9 @@ fn main() -> GameResult<()> {
         .build()
         .expect("could not create ggez context!");
 
-    let grid_size = 32;
-
     let my_game = Gosh::new(&mut ctx)
-        .with_component(grid::Grid::new(&mut ctx, grid_size)?)
-        .with_mouse(Mouse::new(grid_size));
+        .with_grid(grid::Grid::new(&mut ctx, GRID_SIZE)?)
+        .with_mouse(Mouse::new(GRID_SIZE, MAX_MOVES));
 
     // Run!
     event::run(ctx, event_loop, my_game);
@@ -35,17 +37,19 @@ fn main() -> GameResult<()> {
 struct Gosh {
     components: Vec<Box<dyn Component + 'static>>,
     mouse: Option<mouse::Mouse>,
+    grid: Option<grid::Grid>,
 }
 
 impl Gosh {
-    pub fn new(_ctx: &mut Context) -> Gosh {
+    pub fn new(_ctx: &mut Context) -> Self {
         Gosh {
             components: Vec::new(),
-            mouse: None
+            grid: None,
+            mouse: None,
         }
     }
 
-    pub fn with_mouse(mut self, mouse: Mouse) -> Gosh {
+    pub fn with_mouse(mut self, mouse: Mouse) -> Self {
         if self.mouse.is_none() {
             self.mouse = Some(mouse);
         } else {
@@ -54,7 +58,16 @@ impl Gosh {
         self
     }
 
-    pub fn with_component(mut self, component: impl Component + 'static) -> Gosh {
+    pub fn with_grid(mut self, grid: Grid) -> Self {
+        if self.grid.is_none() {
+            self.grid = Some(grid);
+        } else {
+            panic!("You can't call .with_grid() more than once!");
+        }
+        self
+    }
+
+    pub fn with_component(mut self, component: impl Component + 'static) -> Self {
         self.components.push(Box::new(component));
         self
     }
@@ -67,6 +80,11 @@ impl EventHandler for Gosh {
                 // no component does anything sensible at the moment
                 component.update(ctx)?;
             }
+            if let Some(grid) = &mut self.grid {
+                if let Some(mouse) = &mut self.mouse {
+                    mouse.update(grid);
+                }
+            }
         }
         Ok(())
     }
@@ -76,11 +94,14 @@ impl EventHandler for Gosh {
             ctx,
             graphics::CanvasLoadOp::Clear(Color::WHITE),
         );
-        if let Some(mouse) = self.mouse {
+        if let Some(mouse) = &self.mouse {
             mouse.draw(&mut canvas);
         }
         for component in &mut self.components {
             component.draw(&mut canvas);
+        }
+        if let Some(grid) = &mut self.grid {
+            grid.draw(&mut canvas);
         }
         canvas.finish(ctx)?;
         ggez::timer::yield_now();
@@ -99,5 +120,26 @@ impl EventHandler for Gosh {
             mouse.update_position(x, y);
         }
         Ok(())
+    }
+
+    fn mouse_button_down_event(
+        &mut self,
+        _ctx: &mut Context,
+        button: MouseButton,
+        _x: f32,
+        _y: f32,
+    ) -> GameResult {
+        if let Some(grid) = &mut self.grid {
+            if let Some(mouse) = &mut self.mouse {
+                let (x, y) = mouse.position();
+                match button {
+                    MouseButton::Right => grid.toggle_position(x, y),
+                    _ => ()
+                }
+            }
+        }
+
+        Ok(())
+        
     }
 }
